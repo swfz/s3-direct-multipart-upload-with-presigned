@@ -1,6 +1,6 @@
-# s3-presigned-post-sample
+# S3のマルチパートアップロードとPresignedURLを使ってフロントエンドから大容量ファイルを直接アップロードするサンプル
 
-S3のMutipart Uploadをpresigned url を使ってアップロード自体はサーバを経由せずS3へアップロードするためのサンプル
+S3のMutipart Uploadとpresigned url を使ってアップロード自体はサーバを経由せずS3へアップロードするためのサンプル
 
 サンプルはファイル選択したらすぐにアップロードされる
 
@@ -9,6 +9,8 @@ S3のMutipart Uploadをpresigned url を使ってアップロード自体はサ�
 https://aws.amazon.com/jp/premiumsupport/knowledge-center/s3-troubleshoot-403/
 
 ## IAMユーザーの権限
+
+サーバ側で適用するアクセスキーのユーザーの権限
 
 - 例
 
