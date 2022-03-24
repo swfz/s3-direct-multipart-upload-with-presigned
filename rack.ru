@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 require 'aws-sdk-s3'
-require 'securerandom'
 require 'awesome_print'
 
 class SimpleServer
@@ -28,10 +27,8 @@ class SimpleServer
         File.open('./index.html', File::RDONLY)
       ]
     when '/create_multipart_upload'
-      id = SecureRandom.hex
       client = Aws::S3::Client.new(region: 'ap-northeast-1')
-
-      key = "#{params['object_name']}_#{id}"
+      key = "multipart_upload/#{params['object_name']}"
 
       multipart_upload = client.create_multipart_upload(
         bucket: ENV['AWS_BUCKET'],
