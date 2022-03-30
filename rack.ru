@@ -10,13 +10,8 @@ class SimpleServer
     body = request.body.read
     params = body == '' ? nil : JSON.parse(body)
 
-    extensions = {
-      mp4: 'video/mp4',
-      jpg: 'image/jpg',
-      png: 'image/png'
-    }
-
     case request.path
+    # index.html
     when '/'
       [
         200,
@@ -26,6 +21,7 @@ class SimpleServer
         },
         File.open('./index.html', File::RDONLY)
       ]
+    # マルチパートアップロードの開始
     when '/create_multipart_upload'
       client = Aws::S3::Client.new(region: 'ap-northeast-1')
       key = "multipart_upload/#{params['object_name']}"
@@ -35,34 +31,30 @@ class SimpleServer
         key: key
       )
 
-      body = {upload_id: multipart_upload.upload_id, object_key: key}.to_json
-
       [
         200,
-        {
-          'Content-Type'  => 'application/json',
-        },
-        [body]
+        { 'Content-Type' => 'application/json' },
+        [{ upload_id: multipart_upload.upload_id, object_key: key }.to_json]
       ]
+    # presigned URLの発行
     when '/get_presigned_url'
       signer = Aws::S3::Presigner.new
       signed_url = signer.presigned_url(:upload_part,
-         bucket: ENV['AWS_BUCKET'],
-         key: params['object_key'],
-         expires_in: 3600,
-         part_number: params['part_number'],
-         upload_id: params['upload_id']
-      );
-
-      body = {url: signed_url}.to_json
+        {
+          bucket: ENV['AWS_BUCKET'],
+          key: params['object_key'],
+          expires_in: 3600,
+          part_number: params['part_number'],
+          upload_id: params['upload_id']
+        }
+      )
 
       [
         200,
-        {
-          'Content-Type'  => 'application/json',
-        },
-        [body]
+        { 'Content-Type' => 'application/json' },
+        [{ url: signed_url }.to_json]
       ]
+    # マルチパートアップロードの終了
     when '/complete_multipart_upload'
       client = Aws::S3::Client.new(region: 'ap-northeast-1', http_wire_trace: true)
 
@@ -75,21 +67,13 @@ class SimpleServer
         upload_id: params['upload_id'],
       )
 
-      body = res.to_json
-
       [
         200,
-        {
-          'Content-Type'  => 'application/json',
-        },
-        [body]
+        { 'Content-Type' => 'application/json' },
+        [res.to_json]
       ]
     else
-      [
-        404,
-        {},
-        ['Not Found']
-      ]
+      [404, {}, ['Not Found']]
     end
   end
 end

@@ -3,8 +3,10 @@
     <meta charset="utf-8">
   </head>
   <script type="text/javascript">
+  // ファイルの分割単位
   const FILE_CHUNK_SIZE = 50_000_000;
 
+  // マルチパートアップロードの開始リクエスト
   async function createMultipartUpload(objectName) {
     const path = '/create_multipart_upload';
     const headers = {
@@ -22,6 +24,7 @@
     return multipartUpload;
   }
 
+  // presigned URLの発行リクエスト
   async function generateSignedUrl(params) {
     const path = '/get_presigned_url';
     const headers = {
@@ -38,6 +41,7 @@
     return signedUrl;
   }
 
+  // パートデータのアップロード
   async function putPartData(signedUrl, partData, partNumber) {
     const headers = {
       'Content-Type': 'multipart/form-data'
@@ -55,6 +59,7 @@
     }
   }
 
+  // パートデータの読み出し
   async function readPartData(fileBlob, offset) {
     const partData = await new Promise((resolve)=>{
       const reader = new FileReader();
@@ -73,6 +78,7 @@
     return partData;
   }
 
+  // presigned URLの発行、ファイルの分割読み込み、アップロード
   async function generateSignedUrlAndPutPartData(uploadId, objectKey, fileBlob, index) {
     const partData = await readPartData(fileBlob, index * FILE_CHUNK_SIZE);
     const partNumber = index + 1;
@@ -88,6 +94,7 @@
     return part;
   }
 
+  // マルチパートアップロードの終了リクエスト
   async function completeMultipartUpload(multipartUploadId, multipartMap, objectKey) {
     const path = '/complete_multipart_upload';
     const headers = {
@@ -107,6 +114,7 @@
     }).then(response => response.json());
   }
 
+  // ファイルが添付されたときに実行される
   async function upload() {
     const extension = document.querySelector("#largeFile").value.split(".").slice(-1)[0];
     const file = document.querySelector("#largeFile").files[0];
