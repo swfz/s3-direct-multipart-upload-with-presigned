@@ -49,13 +49,8 @@
         body: partData,
       }).then(response => response.headers.get('ETag'));
 
-    // console.dir(responseHeaders, {depth: null});
-    // console.dir(responseHeaders.get('ETag'), {depth: null});
-    // console.log(res.headers);
-    // console.log(res.headers['ETag']);
     return {
       etag: etag.replaceAll("\"", ""),
-      // etag: etag,
       part_number: partNumber,
     }
   }
@@ -78,36 +73,19 @@
     return partData;
   }
 
-  async function generateSignedUrlAndUploadParts(uploadId, objectKey, fileBlob, count) {
-    const commonBody = {
+  async function generateSignedUrlAndPutPartData(uploadId, objectKey, fileBlob, index) {
+    const partData = await readPartData(fileBlob, index * FILE_CHUNK_SIZE);
+    const partNumber = index + 1;
+
+    const signedUrl = await generateSignedUrl({
       upload_id: uploadId,
       object_key: objectKey,
-    };
-
-    const generateAndPutPartData = async (fileBlob, i) => {
-      console.log(i);
-      const partData = await readPartData(fileBlob, i * FILE_CHUNK_SIZE);
-      console.log('partData',partData);
-      const signedUrl = await generateSignedUrl({
-        ...commonBody,
-        part_number: i + 1,
-      });
-      console.log('signedUrl', signedUrl);
-
-      const putResult = await putPartData(signedUrl, partData, i + 1);
-
-      return putResult;
-    }
-
-    const multipartPromises = (Array.from(new Array(count))).map((_,i) => {
-      return generateAndPutPartData(fileBlob, i)
+      part_number: partNumber,
     });
-    console.log(multipartPromises);
 
-    const multipartMap = await Promise.all(multipartPromises);
-    console.log(multipartMap);
+    const part = await putPartData(signedUrl, partData, partNumber);
 
-    return multipartMap;
+    return part;
   }
 
   async function completeMultipartUpload(multipartUploadId, multipartMap, objectKey) {
@@ -133,16 +111,17 @@
     const extension = document.querySelector("#largeFile").value.split(".").slice(-1)[0];
     const file = document.querySelector("#largeFile").files[0];
 
-    const objectName = file.name;
-    const fileSize = file.size;
-    const fileCount = Math.ceil(fileSize / FILE_CHUNK_SIZE);
-
-    const multipartUpload = await createMultipartUpload(objectName);
+    const multipartUpload = await createMultipartUpload(file.name);
     console.log('multipartUpload', multipartUpload);
     const uploadId = multipartUpload.upload_id;
     const objectKey = multipartUpload.object_key;
 
-    const multipartMap = await generateSignedUrlAndUploadParts(uploadId, objectKey, file, fileCount);
+    const count = Math.ceil(file.size / FILE_CHUNK_SIZE);
+    const multipartPromises = (Array.from(new Array(count))).map((_,i) => {
+      return generateSignedUrlAndPutPartData(uploadId, objectKey, file, i)
+    });
+
+    const multipartMap = await Promise.all(multipartPromises);
     console.log('multipartMap', multipartMap);
 
     const completed = await completeMultipartUpload(uploadId, multipartMap, objectKey);
